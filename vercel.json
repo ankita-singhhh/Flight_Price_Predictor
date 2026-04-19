@@ -1,0 +1,20 @@
+{
+  "version": 2,
+  "builds": {
+    "default": {
+      "src": "app.py",
+      "use": "@vercel/python"
+    }
+  },
+  "routes": [
+    {
+      "src": "app.py",
+      "dest": "index.py"
+    }
+  ],
+  "functions": {
+    "api/predict.py": {
+      "runtime": "python3.9"
+    }
+  }
+}
