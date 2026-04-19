@@ -45,9 +45,7 @@ jobs:
     - name: Run tests
       run: |
         pip install pytest pytest-cov
-        ls -la
-        find . -name "tests*" -type d
-        pytest tests/ --cov=. --cov-report=xml --tb=short -v || pytest tests --cov=. --cov-report=xml --tb=short -v
+        python run_tests.py
     
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
