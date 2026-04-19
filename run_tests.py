@@ -13,14 +13,22 @@ def find_tests_directory():
     """Find tests directory in various possible locations"""
     current_dir = Path.cwd()
     
-    # Possible paths where tests might be
+    # Check if we're in the nested directory structure (GitHub Actions)
+    if "Flight_Price_Predictor" in str(current_dir):
+        # We're in /home/runner/work/Flight_Price_Predictor/Flight_Price_Predictor
+        # Tests should be at /home/runner/work/Flight_Price_Predictor/Flight_Price_Predictor/tests
+        tests_path = current_dir / "tests"
+        if tests_path.exists():
+            print(f"Found tests directory: {tests_path}")
+            return str(tests_path)
+        else:
+            print("Tests directory not found in nested structure")
+            return None
+    
+    # Standard local development structure
     possible_paths = [
         current_dir / "tests",
-        current_dir / "Flight_Price_Predictor" / "tests",
-        current_dir / "Flight_Price_Predictor" / "Flight_Price_Predictor" / "tests",
         current_dir.parent / "tests",
-        Path("/home/runner/work/Flight_Price_Predictor/Flight_Price_Predictor") / "tests",
-        Path("/home/runner/work/Flight_Price_Predictor") / "tests",
     ]
     
     for path in possible_paths:
