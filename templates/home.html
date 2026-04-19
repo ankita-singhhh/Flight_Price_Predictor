@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkyFare — Flight Price Predictor</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
+    <style>
+        /* Additional styles for improved UX */
+        .loading-spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #1a1a2e;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .cta-btn.loading {
+            color: transparent;
+            pointer-events: none;
+        }
+        
+        .cta-btn.loading .loading-spinner {
+            display: block;
+        }
+        
+        .error-message {
+            background: #fee;
+            border: 1px solid #fcc;
+            color: #c33;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 14px;
+        }
+        
+        .success-message {
+            background: #efe;
+            border: 1px solid #cfc;
+            color: #3c3;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 14px;
+        }
+        
+        .price-comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 16px;
+            font-size: 12px;
+        }
+        
+        .price-option {
+            background: #f9f9fc;
+            padding: 8px;
+            border-radius: 6px;
+            text-align: center;
+        }
+        
+        .price-option-label {
+            color: #9999aa;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .price-option-value {
+            font-weight: 600;
+            color: #1a1a2e;
+            margin-top: 2px;
+        }
+        
+        .model-badge {
+            background: linear-gradient(135deg, #3b6dd8, #5e3dbf);
+            color: white !important;
+            border: none;
+        }
+        
+        .quick-predict {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        
+        .quick-btn {
+            padding: 8px 12px;
+            background: #f5f5f8;
+            border: 0.5px solid #e8e8ee;
+            border-radius: 6px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.15s;
+            text-align: center;
+        }
+        
+        .quick-btn:hover {
+            background: #eef1fc;
+            border-color: #3b6dd8;
+        }
+    </style>
+</head>
+<body>
+
+<div class="bg-layer"></div>
+
+<div class="page-wrap">
+
+    <!-- Header -->
+    <header class="site-header">
+        <div class="brand">
+            <div class="brand-logo">
+                <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17.8 19.2L16 11l3.5-3.5C21 6 21 4 19 4s-2 1-3.5 2.5L9 10 2.8 6.2c-.5-.3-1-.1-1.3.3l-1 1.8c-.3.5-.1 1.1.3 1.3L7 12l-2 3H3l-1 2 3.5 1.5L7 22l2-1v-2l3-2 2.2 6.2c.2.5.8.7 1.3.4l1.8-1c.4-.3.6-.8.3-1.4z"/>
+                </svg>
+            </div>
+            <div>
+                <h1 class="brand-name">SkyFare</h1>
+                <p class="brand-tagline">ML-powered flight price prediction</p>
+            </div>
+        </div>
+        <span class="model-badge">XGBoost Model</span>
+    </header>
+
+    <!-- Card -->
+    <div class="card">
+
+        <!-- Quick Predict Options -->
+        <div class="section-label">Quick predictions</div>
+        <div class="quick-predict">
+            <button class="quick-btn" onclick="setQuickFlight('Delhi', 'Mumbai', 'IndiGo', 0)">DEL → BOM</button>
+            <button class="quick-btn" onclick="setQuickFlight('Banglore', 'Delhi', 'Air India', 1)">BLR → DEL</button>
+            <button class="quick-btn" onclick="setQuickFlight('Mumbai', 'Cochin', 'Jet Airways', 0)">BOM → COK</button>
+            <button class="quick-btn" onclick="setQuickFlight('Chennai', 'Kolkata', 'SpiceJet', 2)">MAA → CCU</button>
+        </div>
+
+        <!-- Route Bar -->
+        <div class="route-bar">
+            <div class="city-block">
+                <span class="city-label">From</span>
+                <select name="Source" form="predict-form" class="city-select" id="src-select">
+                    <option value="Delhi">DEL</option>
+                    <option value="Mumbai">BOM</option>
+                    <option value="Kolkata">CCU</option>
+                    <option value="Chennai">MAA</option>
+                    <option value="Banglore">BLR</option>
+                </select>
+                <span class="city-full" id="src-full">New Delhi</span>
+            </div>
+
+            <div class="route-mid">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="5" y1="12" x2="19" y2="12"/>
+                    <polyline points="12 5 19 12 12 19"/>
+                </svg>
+                <span class="route-stop-label" id="stops-display">Direct</span>
+            </div>
+
+            <div class="city-block right">
+                <span class="city-label">To</span>
+                <select name="Destination" form="predict-form" class="city-select right-select" id="dst-select">
+                    <option value="Cochin">COK</option>
+                    <option value="Delhi">DEL</option>
+                    <option value="Hyderabad">HYD</option>
+                    <option value="Kolkata">CCU</option>
+                    <option value="New_Delhi">NDL</option>
+                    <option value="Banglore">BLR</option>
+                    <option value="Mumbai">BOM</option>
+                    <option value="Chennai">MAA</option>
+                </select>
+                <span class="city-full right-text" id="dst-full">Cochin</span>
+            </div>
+        </div>
+
+        <!-- Form -->
+        <form id="predict-form" action="/predict" method="post">
+
+            <!-- Hidden inputs -->
+            <input type="hidden" name="stops" id="stops-input" value="0">
+            <input type="hidden" name="Source" id="src-hidden" value="Delhi">
+            <input type="hidden" name="Destination" id="dst-hidden" value="Cochin">
+
+            <!-- Date & Time -->
+            <div class="section-label">Journey details</div>
+            <div class="grid-2">
+                <div class="field-box">
+                    <label for="dep_time">Departure</label>
+                    <input type="datetime-local" name="Dep_Time" id="dep_time" required>
+                </div>
+                <div class="field-box">
+                    <label for="arr_time">Arrival</label>
+                    <input type="datetime-local" name="Arrival_Time" id="arr_time" required>
+                </div>
+            </div>
+
+            <!-- Airline -->
+            <div class="section-label">Airline</div>
+            <div class="field-box" style="margin-bottom: 16px;">
+                <label for="airline">Carrier</label>
+                <select name="airline" id="airline">
+                    <option>IndiGo</option>
+                    <option>Air India</option>
+                    <option>Jet Airways</option>
+                    <option>Jet Airways Business</option>
+                    <option>SpiceJet</option>
+                    <option>Vistara</option>
+                    <option>Vistara Premium economy</option>
+                    <option>GoAir</option>
+                    <option>Multiple carriers</option>
+                    <option>Multiple carriers Premium economy</option>
+                    <option>Air Asia</option>
+                    <option>Trujet</option>
+                </select>
+            </div>
+
+            <!-- Stops -->
+            <div class="section-label">Number of stops</div>
+            <div class="stops-row" id="stops-row">
+                <button type="button" class="stop-btn active" data-val="0">Non-stop</button>
+                <button type="button" class="stop-btn" data-val="1">1 stop</button>
+                <button type="button" class="stop-btn" data-val="2">2 stops</button>
+                <button type="button" class="stop-btn" data-val="3">3 stops</button>
+            </div>
+
+            <button type="submit" class="cta-btn" id="predict-btn">
+                <span class="btn-text">Predict fare</span>
+                <div class="loading-spinner"></div>
+            </button>
+
+        </form>
+
+        <!-- Messages -->
+        {% if prediction_text %}
+            {% if "⚠️" in prediction_text or "Error:" in prediction_text %}
+                <div class="error-message">{{ prediction_text }}</div>
+            {% else %}
+                <div class="success-message">Prediction completed successfully!</div>
+                <div class="result-card">
+                    <p class="result-label">Estimated fare</p>
+                    <p class="result-price">{{ prediction_text }}</p>
+                    <p class="result-note">Based on airline, route, stops, and travel time</p>
+                    
+                    <div class="price-comparison">
+                        <div class="price-option">
+                            <div class="price-option-label">Economy</div>
+                            <div class="price-option-value" id="economy-price">--</div>
+                        </div>
+                        <div class="price-option">
+                            <div class="price-option-label">Business</div>
+                            <div class="price-option-value" id="business-price">--</div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        {% endif %}
+
+    </div>
+
+    <p class="footer-note">Trained on Indian domestic flight data · March–June dataset · XGBoost Model</p>
+
+</div>
+
+<script>
+    const cityNames = {
+        Delhi: 'New Delhi', Mumbai: 'Mumbai', Kolkata: 'Kolkata', Chennai: 'Chennai',
+        Cochin: 'Cochin', Hyderabad: 'Hyderabad', New_Delhi: 'New Delhi (IGI)',
+        Banglore: 'Bangalore'
+    };
+
+    const srcSelect = document.getElementById('src-select');
+    const dstSelect = document.getElementById('dst-select');
+    const srcHidden = document.getElementById('src-hidden');
+    const dstHidden = document.getElementById('dst-hidden');
+    const predictBtn = document.getElementById('predict-btn');
+    const form = document.getElementById('predict-form');
+
+    function updateLabels() {
+        document.getElementById('src-full').textContent = cityNames[srcSelect.value] || srcSelect.value;
+        document.getElementById('dst-full').textContent = cityNames[dstSelect.value] || dstSelect.value;
+        srcHidden.value = srcSelect.value;
+        dstHidden.value = dstSelect.value;
+    }
+
+    srcSelect.addEventListener('change', updateLabels);
+    dstSelect.addEventListener('change', updateLabels);
+    updateLabels();
+
+    // Stops toggle
+    const stopLabels = ['Direct', '1 stop', '2 stops', '3 stops'];
+    document.getElementById('stops-row').addEventListener('click', function(e) {
+        const btn = e.target.closest('.stop-btn');
+        if (!btn) return;
+        document.querySelectorAll('.stop-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const val = parseInt(btn.dataset.val);
+        document.getElementById('stops-input').value = val;
+        document.getElementById('stops-display').textContent = stopLabels[val] || 'Direct';
+    });
+
+    // Quick flight selection
+    function setQuickFlight(src, dst, airline, stops) {
+        srcSelect.value = src;
+        dstSelect.value = dst;
+        document.getElementById('airline').value = airline;
+        
+        // Set stops
+        document.querySelectorAll('.stop-btn').forEach(b => b.classList.remove('active'));
+        document.querySelector(`.stop-btn[data-val="${stops}"]`).classList.add('active');
+        document.getElementById('stops-input').value = stops;
+        document.getElementById('stops-display').textContent = stopLabels[stops];
+        
+        updateLabels();
+        
+        // Set default times
+        const now = new Date();
+        const arr = new Date(now.getTime() + 2 * 3600 * 1000);
+        const pad = n => String(n).padStart(2, '0');
+        const fmt = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        document.getElementById('dep_time').value = fmt(now);
+        document.getElementById('arr_time').value = fmt(arr);
+    }
+
+    // Form submission with loading state
+    form.addEventListener('submit', function(e) {
+        predictBtn.classList.add('loading');
+        predictBtn.querySelector('.btn-text').style.display = 'none';
+    });
+
+    // Default datetime to now + 2h
+    const now = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    const fmt = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    const arr = new Date(now.getTime() + 2 * 3600 * 1000);
+    document.getElementById('dep_time').value = fmt(now);
+    document.getElementById('arr_time').value = fmt(arr);
+
+    // Add more source/destination options
+    const additionalSources = ['Banglore'];
+    const additionalDests = ['Banglore', 'Mumbai', 'Chennai'];
+    
+    additionalSources.forEach(city => {
+        const option = document.createElement('option');
+        option.value = city;
+        option.textContent = city.substring(0, 3).toUpperCase();
+        srcSelect.appendChild(option);
+    });
+    
+    additionalDests.forEach(city => {
+        const option = document.createElement('option');
+        option.value = city;
+        option.textContent = city.substring(0, 3).toUpperCase();
+        dstSelect.appendChild(option);
+    });
+</script>
+
+</body>
+</html>
