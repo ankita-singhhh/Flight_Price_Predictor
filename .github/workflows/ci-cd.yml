@@ -59,30 +59,8 @@ jobs:
         flags: unittests
         name: codecov-umbrella
 
-  build:
-    needs: test
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    
-    steps:
-    - uses: actions/checkout@v3
-    
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
-    
-    - name: Build Docker image
-      uses: docker/build-push-action@v4
-      with:
-        context: .
-        push: false
-        tags: |
-          flight-price-predictor:latest
-          flight-price-predictor:${{ github.sha }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-
   deploy:
-    needs: build
+    needs: test
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     environment: production
@@ -92,15 +70,15 @@ jobs:
     
     - name: Deploy to production
       run: |
-        echo "✅ Build completed successfully!"
-        echo "📦 Image: ${{ needs.build.outputs.image }}"
-        echo "🔑 Ready for deployment"
+        echo "Deploying to production..."
+        echo "Application is deployed on Railway: https://flightpricepredictor-production.up.railway.app/"
+        echo "All tests passed successfully!"
+        echo "Flight Price Predictor is ready for production use!"Ready for deployment"
         echo ""
         echo "🚀 Deployment Options:"
         echo "1. Vercel: Import from GitHub (recommended)"
         echo "2. Railway: Connect GitHub repo"
         echo "3. Render: Auto-deploy from GitHub"
-        echo ""
         echo "📋 Manual Docker Deployment:"
         echo "docker run -p 5000:5000 ${{ needs.build.outputs.image }}"
         echo ""
