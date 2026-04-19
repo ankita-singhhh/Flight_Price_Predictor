@@ -80,9 +80,6 @@ jobs:
           flight-price-predictor:${{ github.sha }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
-        outputs: |
-          image=${{ steps.build.outputs.image }}
-          digest=${{ steps.build.outputs.digest }}
 
   deploy:
     needs: build
